@@ -1,0 +1,77 @@
+x-common-app-config: &common-app-config
+  build:
+    context: .
+    dockerfile: DockerFile
+  volumes:
+    - .:/app
+  env_file:
+    - src/config/env/.env
+
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+  networks:
+    - app-net
+
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      # Make sure this path is correct for your project structure
+      - src/config/env/.env 
+    environment:
+      # Map your .env variables to the names Postgres expects
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      # Use the variables you defined in your .env file
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  redis:
+    image: redis:7-alpine
+
+    volumes:
+      - redis_data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  web:
+    <<: *common-app-config
+    command: gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application
+    ports:
+      - "8000:8000"
+
+  celery:
+    <<: *common-app-config
+    command: celery -A config worker -l INFO
+    restart: always
+
+  celery-beat:
+    <<: *common-app-config
+    command: celery -A config beat -l INFO
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-net:
+    driver: bridge
