@@ -1,0 +1,102 @@
+# Python bytecode
+*.py[cod]
+__pycache__/
+*.mypy_cache/
+*.ruff_cache/
+*.pyc
+
+# Django specific
+/logs/
+*.log
+*.pot
+*.pyc
+__pycache__/
+db.sqlite3
+db.sqlite3-journal
+dump.rdb
+/media/
+
+*static/
+staticfiles/
+
+# Environment variables
+.env
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+*.so
+*.dylib
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.lock
+# PyInstaller
+#  Usually these files are written by a python script from a template
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# pyenv
+# .python-version
+
+# Celery stuff
+celerybeat-schedule
+
+# virtualenv
+.venv/
+ENV/
+# env/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+
+# # Ignore all migrations folders in apps
+# apps/**/migrations/
+# apps/**/migrations/*
+
+# # But keep __init__.py so Django doesn't break
+# !apps/**/migrations/__init__.py
