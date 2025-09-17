@@ -22,8 +22,7 @@ class AuthService:
 
     @classmethod
     def set_http_cookies(cls: "AuthService", tokens: tuple[str, str]) -> Response:
-        print(tokens)
-        access, refresh = tokens[0], tokens[0]
+        access, refresh = tokens[0], tokens[1]
 
         response = APIResponse.success(
             message="OTP verified successfully.",
