@@ -22,16 +22,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
-      # Make sure this path is correct for your project structure
-      - src/config/env/.env 
+      - src/config/env/.env
     environment:
-      # Map your .env variables to the names Postgres expects
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: bookjo_admin
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: bookjo
     healthcheck:
-      # Use the variables you defined in your .env file
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -54,24 +51,42 @@ services:
 
   web:
     <<: *common-app-config
+    working_dir: /app/src
+    entrypoint: ./load-scripts.sh
     command: gunicorn --bind 0.0.0.0:8000 --workers 4 config.wsgi:application
+    volumes:
+      - static_volume:/app/src/config/static
     ports:
-      - "8000:8000"
+      - 8000:8000
 
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/src/config/static
+    depends_on:
+      - web
   celery:
     <<: *common-app-config
+    working_dir: /app/src
     command: celery -A config worker -l INFO
     restart: always
 
   celery-beat:
     <<: *common-app-config
+    working_dir: /app/src
     command: celery -A config beat -l INFO
     restart: always
 
 volumes:
+  static_volume:
   postgres_data:
   redis_data:
 
 networks:
   app-net:
     driver: bridge
+#  4456  sudo usermod -aG docker $USER
+#  4457  newgrp docker
