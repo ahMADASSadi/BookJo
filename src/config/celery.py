@@ -3,10 +3,8 @@ from __future__ import absolute_import, unicode_literals
 import os
 
 from celery import Celery  # type: ignore
-from celery.schedules import crontab  # type: ignore  # noqa: F401
-from django.conf import settings  # type: ignore
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.base")
 
 app = Celery("config")
 
@@ -18,7 +16,7 @@ app.autodiscover_tasks()
 app.conf.update(
     # CELERY_QUEUES=settings.CELERY_QUEUES,
     # CELERY_ROUTES=settings.CELERY_ROUTES,
-    CELERY_DEFAULT_QUEUE=settings.CELERY_DEFAULT_QUEUE,
+    # CELERY_DEFAULT_QUEUE=settings.CELERY_DEFAULT_QUEUE,
     CELERY_DEFAULT_EXCHANGE="tasks",
     CELERY_DEFAULT_ROUTING_KEY="task.default",
 )

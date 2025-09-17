@@ -1,11 +1,14 @@
+from datetime import timedelta
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env.read_env(BASE_DIR / "env/.env")
 
+DEBUG = env.bool("DEBUG")
 SECRET_KEY = env.get_value("BOOKJO_SECRET_KEY")
 
 DEFAULT_APPS = [
@@ -77,6 +80,36 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+if DEBUG:
+    ALLOWED_HOSTS = ["*"]
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "../db.sqlite3",
+        }
+    }
+
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOW_CREDENTIALS = True
+else:
+    ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env.get_value("DB_NAME"),
+            "USER": env.get_value("DB_USER"),
+            "PASSWORD": env.get_value("DB_PASSWORD"),
+            "HOST": env.get_value("DB_HOST", default="localhost"),
+            "PORT": env.get_value("DB_PORT", default="5432"),
+        }
+    }
+
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS")
+    CORS_ALLOW_CREDENTIALS = True
+
 
 LANGUAGE_CODE = "fa"
 LANGUAGES = [
@@ -101,13 +134,30 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 CELERY_DEFAULT_QUEUE = "default"
-CELERY_RESULT_BACKEND = env.get_value("CELERY_BROKER_URL")
-CELERY_BROKER_URL = env.get_value("CELERY_RESULT_BACKEND")
+CELERY_RESULT_BACKEND = env.get_value("CELERY_RESULT_BACKEND")
+CELERY_BROKER_URL = env.get_value("CELERY_BROKER_URL")
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_TASK_ACKS_LATE = True
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BEAT_SCHEDULE = {
+    "check-overdue-books-every-minute": {
+        "task": "apps.library.tasks.check_overdue_books",
+        # Runs every minute
+        "schedule": crontab(),
+    },
+    "check-unseen_notifications-every-minute": {
+        "task": "apps.library.tasks.notify_notifications",
+        # Runs every minute
+        "schedule": crontab(),
+    },
+}
 
+BOOK_RETURN_REMINDER_DELAY = env.get_value(
+    "BOOK_RETURN_REMINDER_DELAY_SECONDS", cast=int
+)
+DUE_DATE_PERIOD_DAY = env.int("DUE_DATE_PERIOD_DAY")
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -117,8 +167,12 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": env.get_value("ACCESS_TOKEN_LIFETIME"),
-    "REFRESH_TOKEN_LIFETIME": env.get_value("REFRESH_TOKEN_LIFETIME"),
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        days=int(env.get_value("ACCESS_TOKEN_LIFETIME"))
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=int(env.get_value("REFRESH_TOKEN_LIFETIME"))
+    ),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
