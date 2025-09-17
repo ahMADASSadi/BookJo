@@ -100,11 +100,10 @@ class BorrowCreateSerializer(ModelSerializer):
 
     class Meta:
         model = Borrow
-        fields = ["book_id", "return_date"]
+        fields = ["book_id"]
 
     def create(self, validated_data):
         validated_data["user"] = self.context.get("user")
-
         return super().create(validated_data)
 
 

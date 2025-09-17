@@ -1,4 +1,4 @@
-from django.utils import timezone
+from django.db import DatabaseError
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
@@ -23,6 +23,7 @@ from apps.library.serializers import (
     BorrowSerializer,
     BorrowUpdateSerializer,
 )
+from apps.library.service.library_service import LibraryService
 from common.responses import APIResponse
 from common.view import ViewSetMixin
 
@@ -72,6 +73,7 @@ class BorrowViewSet(ViewSetMixin, ModelViewSet):
     }
     default_serializer_class = BorrowSerializer
     _repo = LibraryRepository
+    _service = LibraryService
 
     def get_queryset(self):
         user = self.get_user()
@@ -85,14 +87,14 @@ class BorrowViewSet(ViewSetMixin, ModelViewSet):
     @action(methods=["put"], detail=True, url_path="return")
     def return_book(self, request, *args, **kwargs):
         borrow = self.get_object()
-        book = borrow.book
-        if not book.is_available:
-            book.is_available = True
-            book.save()
-        borrow.return_date = timezone.now()
-        serializer = self.get_serializer(borrow)
-        self.destroy(request)
-        return APIResponse.success(data=serializer.data)
+        try:
+            self._service.return_book(borrow)
+            serializer = self.get_serializer(borrow)
+            return APIResponse.success(
+                data=serializer.data, message="Book returned successfully."
+            )
+        except DatabaseError as e:
+            return APIResponse.internal_error(errors=e)
 
     @extend_schema(**my_borrows_schema)
     @action(methods=["get"], detail=False, url_path="my")

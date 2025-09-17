@@ -60,7 +60,7 @@ borrow_schema = {
 return_book_schema = {
     "summary": "Return a borrowed book",
     "description": "Mark a borrowed book as returned. Sets the book as available and records the return date.",
-    "responses": {200: BorrowSerializer},
+    "responses": {200: {"message": "Success"}},
 }
 my_borrows_schema = {
     "summary": "List my borrows",

@@ -1,8 +1,10 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_lifecycle import LifecycleModel, hook
-from django_lifecycle.hooks import AFTER_CREATE
+from django_lifecycle.hooks import AFTER_CREATE, BEFORE_SAVE
 
 from common.model import BaseModel
 
@@ -55,7 +57,8 @@ class Borrow(BaseModel, LifecycleModel):
         related_name="borrows",
         verbose_name=_("Book"),
     )
-    borrow_date = models.DateField(verbose_name=_("Borrow Date"), auto_now=True)
+    borrow_date = models.DateField(verbose_name=_("Borrow Date"), auto_now_add=True)
+    due_date = models.DateField(verbose_name=_("Due Date"))
     return_date = models.DateField(verbose_name=_("Return Date"), null=True, blank=True)
 
     class Meta:
@@ -63,12 +66,18 @@ class Borrow(BaseModel, LifecycleModel):
         verbose_name_plural = _("Borrows")
         constraints = [
             models.UniqueConstraint(
-                name="unique_book_per_user", fields=["user", "book"]
+                name="unique_book_per_user", fields=["user", "book", "created_at"]
             )
         ]
 
+    @hook(BEFORE_SAVE)
+    def set_due_date(self: "Borrow"):
+        self.due_date = timezone.now() + timezone.timedelta(
+            days=settings.DUE_DATE_PERIOD_DAY
+        )
+
     @hook(AFTER_CREATE)
-    def set_return_date(self: "Borrow") -> None:
+    def mark_book_as_unavailable(self: "Borrow") -> None:
         book: Book = self.book
         if book.is_available:
             book.is_available = False
@@ -76,3 +85,19 @@ class Borrow(BaseModel, LifecycleModel):
 
     def __str__(self) -> str:
         return f"{self.user} borrowed {self.book} on {self.borrow_date}"
+
+
+class Notification(BaseModel):
+    borrow = models.ForeignKey(
+        Borrow,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name=_("Borrow"),
+    )
+    message = models.TextField(verbose_name=_("Message"))
+    is_delivered = models.BooleanField(verbose_name=_("Is Delivered"), default=True)
+    is_seen = models.BooleanField(verbose_name=_("Is Seen"), default=False)
+
+    class Meta:
+        verbose_name = _("Notification")
+        verbose_name_plural = _("Notifications")
