@@ -20,12 +20,6 @@ class InvalidCredentialsError(APIException):
     default_code = "invalid_credentials"
 
 
-class PasswordMismatchError(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "New passwords do not match."
-    default_code = "password_mismatch"
-
-
 class ObjectNotFoundError(APIException):
     status_code = status.HTTP_404_NOT_FOUND
     default_detail = "No object found"
